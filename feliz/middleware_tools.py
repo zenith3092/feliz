@@ -297,7 +297,7 @@ class UserStatusCheck(_AuthMiddleware):
         status_key (str): The status key. Default: "status".
         excluding_status (list): The excluding status.
     """
-    def __init__(self, DH_OBJ, target: str, unique_key: str, status_key="status", excluding_status: list = []):
+    def __init__(self, DH_OBJ, target: str, unique_key: str, status_key="status", excluding_status=[]):
         self.DH_OBJ = DH_OBJ
         self.target = target
         self.unique_key = unique_key
