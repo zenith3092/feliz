@@ -12,7 +12,7 @@ GLOBALS = {"INIT": {},
 
 def get_globals(key= ""):
     if key:
-        return GLOBALS[key].get(key, "")
+        return GLOBALS.get(key, "")
     else:
         return GLOBALS
 
