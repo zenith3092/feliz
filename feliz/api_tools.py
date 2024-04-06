@@ -17,7 +17,8 @@ def handler(endpoint: str, blueprint: Blueprint, **options):
         - input_request: The input request from the client.
         - DB: The database objects (Postgres Handler).
         - CONFIGS: The configurations of the server.
-        - API: The configurations of the API.
+        - API_CONFIGS: The configurations of the API.
+        - USER_DATA: The informations of the user.
     """
     def decorator(func):
         @blueprint.route(endpoint, **options)
@@ -102,3 +103,4 @@ def error_handler(e):
 
 def api_route_register(app, blueprint: Blueprint):
     app.register_blueprint(blueprint, url_prefix=f"/api/{blueprint.name}")
+    

@@ -136,6 +136,9 @@ class JwtInitialware(Initialware):
 class CorsInitialware(Initialware):
     """
     The CorsInitialware class is used to initialize the CORS.
+    
+    Args:
+        settings (dict)
     """
     def __init__(self, settings={}):
         self.kwargs = settings
