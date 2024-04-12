@@ -4,11 +4,11 @@ A framework designed to assist in using Flask.
 
 ## Features
 
-- **Rapid API Development**: Offers decorators and utility functions to quickly establish RESTful APIs with minimal code.
-- **Configuration Management**: Built-in support for managing configurations across different development stages (development, testing, production).
-- **Error Handling**: Simplifies the process of handling errors and customizing responses for a better API user experience.
-- **Database Integration**: Facilitates easier integration with databases, providing abstraction layers for common operations. Supporting Postgress and MangoDB.
-- **Authentication & Authorization**: Includes ready-to-use modules for handling user authentication and authorization.
+-   **Rapid API Development**: Offers decorators and utility functions to quickly establish RESTful APIs with minimal code.
+-   **Configuration Management**: Built-in support for managing configurations across different development stages (development, testing, production).
+-   **Error Handling**: Simplifies the process of handling errors and customizing responses for a better API user experience.
+-   **Database Integration**: Facilitates easier integration with databases, providing abstraction layers for common operations. Supporting PostgresDB and MangoDB.
+-   **Authentication & Authorization**: Includes ready-to-use modules for handling user authentication and authorization.
 
 ## Getting Started
 
@@ -28,33 +28,25 @@ pip install feliz
 
 #### feliz
 
-`flask==2.3.2`
+`flask`
 
-`flask-cors==3.0.10`
+`flask-cors`
 
-`flask_jwt_extended==4.5.2`
+`flask_jwt_extended`
 
-`bcrypt==4.0.1`
+`bcrypt`
 
-`pyyaml==5.1`
-
-#### feliz-db
-
-for PostgresDB:
-
-`psycopg2==2.9.1`
-
-for MongoDB:
-
-`pymongo==4.6.0`
-
-`mongoengine==0.27.0`
+`pyyaml`
 
 ## Configurations
 
 ### server_config.yaml
 
 `$ cd {your_project}/configs/private/server_config.yaml`
+
+This is the configuration file of the server. You can set the server name, host, port, debug mode, number of workers, etc.
+
+If needed, you can add more configurations to this file.
 
 ```yaml
 SERVER:
@@ -67,31 +59,29 @@ JWT:
   JWT_ENABLE: # whether to enable jwt (boolean)
   JWT_ALGORITHM: # jwt algorithm (string)
   JWT_SECRET_KEY: # jwt secret key (string)
-  EXPIRE_HOURS: # jwt expire hours (int)
+  EXPIRE_HOURS: # jwt expire hours (int) or INFINITY
+  MESSAGE: # jwt message (string) if not set, the default message will be used
+    UNAUTHORIZED: # unauthorized message (string)
+    INVALID: # invalid token message (string)
+    EXPIRED: # expired token message (string)
+    REVOKED: # revoked token message (string)
 CORS:
   CORS_ENABLE: # whether to enable cors (boolean)
-ACCOUNT:
-  RESET_PASSWORD: # the default password (string)
 DB:
   DB_ENABLE: # whether to enable database function (boolean)
   INI_FILE: # database configuration file path (string)
 API:
   API_ENABLE: # whether to enable api function (boolean)
   API_FILE: # api configuration file path (string)
-TEST_FLAG:# whether to open the testing mode (boolean)
-
-  # (if needed)
-AWS_BACKEND:
-  MODE: # aws mode (string)
-  BUCKET: # aws bucket website (string)
-  OBJECT_PATH: # aws s3 database reletive path (string)
-  ACCESS_ID: # aws access id (string)
-  SECRET_KEY: # aws secret key (string)
 ```
 
 ### database.ini
 
 `$ cd {your_project}/configs/private/database.ini` (recommended path)
+
+This is the configuration file of the database. You can set the database type, host, port, database name, username, password, etc.
+
+If needed, you can add more sections to this file.
 
 ```ini
 [<your_section_name>]
@@ -109,6 +99,8 @@ password=; database password
 
 `$ cd {your_project}/configs/public/server_api.yaml`
 
+This is the configuration file of the API. If you use `@handler` decorator, you need to set the configuration of the API and not forget to turn the `API_ENABLE` to `True` in `server_config.yaml`.ß
+
 ```yaml
 admin: # service
   accounts: # operation
@@ -123,14 +115,14 @@ admin: # service
       InputType: { "add_list": list, "return_added": bool } # type of input parameters
 ```
 
-#### Note:
+ç
 
 1. The url of each API follows the format:
    `http://{host}:{port}/api/{service}/{opration}`
 2. Each element in `Permission` is used to classify the user's group and no cascading relationship between them.
 3. `Optionals` and `OptionalDefaults` must be the same length.
 4. About `InputType`, no need to set all the parameters, only set the parameters that need to be inspected.
-5. `InputType` supports all types which Python supports. Besides, Feliz supports `json` type, which inspect whether the input parameter can be json loads.
+5. `InputType` supports all types which Python supports. Besides, Feliz supports `json` type, which inspect whether the input parameter can be json loads. Moreover, Feliz also supports `json-list` and `json-dict` types, which inspect whether the input parameter can be json loads and the type of the loaded data is list or dict.
 
 ## Usage
 
@@ -147,6 +139,8 @@ The following is an example of how to use Initialware and InitialwareSystem:
 ```python
 from flask import Flask
 from feliz.initialware_tools import InitialwareSystem, ImportGlobals, JwtInitialware, CorsInitialware
+from feliz_db.postgres_tools import PostgresHandler
+from models import models
 
 app = Flask(__name__)
 
@@ -157,6 +151,10 @@ iws.use(CorsInitialware())
 iws.use(PostgresInitialware(PostgresHandler, models["postgres"]))
 iws.execute(app)
 ```
+
+#### Note:
+
+-   `models` is a dictionary that contains the models of the database. If you want to learn more about the models, please refer to the [feliz_db](https://github.com/zenith3092/feliz_db)
 
 ### Middleware & MiddlewareSystem
 
@@ -215,7 +213,7 @@ The parameters of the handler decorator are as follows:
 2. DB: the database handler.
 3. CONFIGS: the configuration of the server. (server_config.yaml)
 4. API_CONFIGS: the configuration of the API. (server_api.yaml)
-5. USER_DATA: the informations of the user.
+5. USER_DATA: the information of the user.
 
 All the parameters are encapsulated in a parameter called `params`, and you can decide which parameters to use in the handler function. (Note that `params` is the required parameter of the handler function.)
 
@@ -276,6 +274,6 @@ api_route_register(app, adminApi)
 
 ## Author
 
-- **Vincent Wu** - [zenith3092@gmail.com](mailto:zenith3092@gmail.com)
-- **Linga Chen**
-- **Brian Yin** - [land7411bu@gmail.com](mailto:land7411bu@gmail.com)
+-   **Vincent Wu** - [zenith3092@gmail.com](mailto:zenith3092@gmail.com)
+-   **Linga Chen**
+-   **Brian Yin** - [land7411bu@gmail.com](mailto:land7411bu@gmail.com)

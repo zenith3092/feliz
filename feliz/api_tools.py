@@ -31,10 +31,10 @@ def handler(endpoint: str, blueprint: Blueprint, **options):
                 else:
                     user_data = {}
                 params = {"input_request": g.get("input_request", {}),
-                        "DB": g.get("DB", {}),
-                        "USER_DATA": user_data,
-                        "CONFIGS": g.get("CONFIGS", {}),
-                        "API_CONFIGS": g.get("API_CONFIGS", {})}
+                          "API_CONFIGS":   g.get("API_CONFIGS", {}),
+                          "CONFIGS":       g.get("CONFIGS", {}),
+                          "DB":            g.get("DB", {}),
+                          "USER_DATA":     user_data}
                 return func(**params)
             else:
                 raise DevelopmentError("The server_api.yaml is not used, so 'handler' decorator is invalid.")
@@ -54,7 +54,7 @@ def TrueResponse(message: str, content=None) -> dict:
     """
     return {"indicator": True, "message": message, "content": content}
 
-def FalseResponse(message: str) -> dict:
+def FalseResponse(message: str, content=None) -> dict:
     """
     This function is used to return the message to the client with {"indicator": False, "message": message}
     
@@ -64,7 +64,7 @@ def FalseResponse(message: str) -> dict:
     Returns:
         dict: The message to return to the client.
     """
-    raise IndicatorFalseException(message)
+    raise IndicatorFalseException(message, content=content)
 
 class IndicatorFalseException(Exception):
     """
@@ -72,16 +72,17 @@ class IndicatorFalseException(Exception):
     If developers want to return indicator False, they should raise this error.
     Then, server will return the message to the client with {"indicator": False, "message": message}
     """
-    def __init__(self, message):
+    def __init__(self, message, content=None):
         super().__init__()
         self.message = message
+        self.content = content
         self.filename, self.lineno, self.function, self.text = traceback.extract_stack()[-2]
     
     def __str__(self):
-        # logging.warning("\nServer API Indicator False:")
-        # logging.warning(f"{self.filename}  Line:{self.lineno}  {self.function}")
-        # logging.warning(self.message, "\n")
         return self.message
+    
+    def get_json_response(self):
+        return {"indicator": False, "message": self.message, "content": self.content}
 
 class DevelopmentError(Exception):
     def __init__(self, message):
@@ -90,17 +91,32 @@ class DevelopmentError(Exception):
         self.filename, self.lineno, self.function, self.text = traceback.extract_stack()[-2]
     
     def __str__(self):
-        print("\nServer Development Error:")
-        print(f"{self.filename}   Line:{self.lineno} {self.function}")
-        print(self.message, "\n")
         return self.message
 
-def error_handler(e):
-    if not isinstance(e, IndicatorFalseException):
+def error_handler(e, loggerIndicatorFalse=False):
+    """
+    This function is used to handle the error in the server.
+
+    Args:
+        e (Exception): The exception to handle.
+        loggerIndicatorFalse (bool): If True, the server will log the error message when the class is IndicatorFalseException.
+    """
+    if isinstance(e, IndicatorFalseException):
+        if loggerIndicatorFalse:
+            logging.warning(f"\n============ Server API Indicator False ============")
+            logging.warning(traceback.format_exc())
+            logging.warning("=====================================================\n")
+        return e.get_json_response()
+    else:
         logging.warning(f"\n====================================================")
         logging.warning(traceback.format_exc())
         logging.warning("=====================================================\n")
+        return {"indicator": False, "message": str(e), "content": None}
 
 def api_route_register(app, blueprint: Blueprint):
+    """
+    This function is used to register the blueprint to the app.
+    The url_prefix is f"/api/{blueprint.name}".
+    """
     app.register_blueprint(blueprint, url_prefix=f"/api/{blueprint.name}")
     
