@@ -4,6 +4,7 @@ import time
 import os
 from abc import ABC, abstractmethod
 from flask import Flask
+from flask.json.provider import DefaultJSONProvider, _default
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
 from .file_tools import read_ini
@@ -116,26 +117,31 @@ class JwtInitialware(Initialware):
             prev_data["app"].config.update(JWT_CONFIGS)
             jwt = JWTManager(prev_data["app"])
             
+            RETURN_MESSAGE = JWT_CONFIGS.get("MESSAGE", {})
+
             @jwt.unauthorized_loader
             def unauthorized_callback(error):
-                return {'indicator': False, 'message': 'Missing JWT token'}
+                return {"indicator": False, "message": RETURN_MESSAGE.get("UNAUTHORIZED", "Missing JWT token")}
 
             @jwt.invalid_token_loader
             def invalid_token_callback(error):
-                return {'indicator': False, 'message': 'Invalid JWT token'}
+                return {"indicator": False, "message": RETURN_MESSAGE.get("INVALID_TOKEN", "Invalid JWT token")}
 
             @jwt.revoked_token_loader
             def revoked_token_callback(error):
-                return {'indicator': False, 'message': 'Revoked JWT token'}
+                return {"indicator": False, "message": RETURN_MESSAGE.get("REVOKED_TOKEN", "Revoked JWT token")}
 
             @jwt.expired_token_loader
             def expired_token_callback(error, expired_token):
-                return {'indicator': False, 'message': 'Your login session has expired, please log in again.'}
+                return {"indicator": False, "message": RETURN_MESSAGE.get("EXPIRED_TOKEN", "Expired JWT token")}
         return prev_data
 
 class CorsInitialware(Initialware):
     """
     The CorsInitialware class is used to initialize the CORS.
+    
+    Args:
+        settings (dict)
     """
     def __init__(self, settings={}):
         self.kwargs = settings
@@ -259,4 +265,35 @@ class PostgresInitialware(_DatabaseInitialware):
                             model.execute_sql(db_obj)
                             model.clear_sql()
                 set_db(PostgresInitialware.POSTGRES, section, db_obj)
+        return prev_data
+
+class JsonifyInitialware(Initialware):
+    """
+    The JsonifyInitialware class is used to define the method of jsonify.
+    Some classes may not be able to use jsonify directly, so this class is used to define jsonify.
+    
+    Args:
+        customized_jsonify (function): The customized jsonify function. The function must have two arguments: obj and default_jsonify.
+            \- obj: The object to jsonify.
+            \- default_jsonify: If the obj is not the type that the customized jsonify function can handle, you should use this function to jsonify the obj.
+    
+    Example:
+        def customized_jsonify(obj, default_jsonify):
+            if isinstance(obj, YourClass):
+                return obj.to_json()
+            return default_jsonify(obj)
+    """
+    def __init__(self, customized_jsonify=None):
+        self.customized_jsonify = customized_jsonify
+    
+    def process(self, prev_data: dict):
+        class CustomJSONEncoder(DefaultJSONProvider):
+            @staticmethod
+            def default_action(obj):
+                if self.customized_jsonify:
+                    return self.customized_jsonify(obj, default_jsonify=_default)
+                else:
+                    return _default(obj)
+            default = default_action
+        prev_data["app"].json = CustomJSONEncoder(prev_data["app"])
         return prev_data
