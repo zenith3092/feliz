@@ -260,7 +260,8 @@ class PostgresInitialware(_DatabaseInitialware):
                     for index in range(len(keys_list)):
                         key = keys_list[index]
                         model = init_models[key]
-                        model.create_sql()
+                        if model.meta["initialize"]:
+                            model.create_sql()
                         if index == len(keys_list) - 1:
                             model.execute_sql(db_obj)
                             model.clear_sql()
