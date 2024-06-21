@@ -99,7 +99,7 @@ password=; database password
 
 `$ cd {your_project}/configs/public/server_api.yaml`
 
-This is the configuration file of the API. If you use `@handler` decorator, you need to set the configuration of the API and not forget to turn the `API_ENABLE` to `True` in `server_config.yaml`.ß
+This is the configuration file of the API. If you use `@handler` decorator, you need to set the configuration of the API and not forget to turn the `API_ENABLE` to `True` in `server_config.yaml`.
 
 ```yaml
 admin: # service
