@@ -1,5 +1,34 @@
 # Update History
 
+## v0.0.5
+
+### Add Dynamic Routing
+
+In previous versions, the routing is static, which means that you can't set the parameter of the routing dynamically. In this version, you can set the parameter of the routing dynamically.
+
+#### Example:
+
+```python
+# xxx_api.py
+
+from flask import Blueprint
+from feliz.api_tools import handler
+
+xxxApi = Blueprint('xxx', __name__)
+
+@handler("/home/<uid>", xxxApi, methods=["GET"])
+def home(uid, input_request, **params):
+    return {"uid": uid}
+```
+
+## v0.0.4
+
+### Fix the bug of `PostgresInitialware`
+
+The `PostgresInitialware` now can detect the parameter `initialize` in meta of the `PostgresModelHandler`.
+
+If `initialize` is `True`, the `PostgresInitialware` will initialize the database.
+
 ## v0.0.3
 
 ### Added new initialware `JsonifyInitialware`

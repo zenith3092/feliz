@@ -18,12 +18,12 @@ def handler(endpoint: str, blueprint: Blueprint, **options):
         - DB: The database objects (Postgres Handler).
         - CONFIGS: The configurations of the server.
         - API_CONFIGS: The configurations of the API.
-        - USER_DATA: The informations of the user.
+        - USER_DATA: The information of the user.
     """
     def decorator(func):
         @blueprint.route(endpoint, **options)
         @wraps(func)
-        def wrapper():
+        def wrapper(**kwargs):
             if api_use_inspector(request):
                 user_list = g.get("user_list", [])
                 if len(user_list) == 1:
@@ -35,6 +35,7 @@ def handler(endpoint: str, blueprint: Blueprint, **options):
                           "CONFIGS":       g.get("CONFIGS", {}),
                           "DB":            g.get("DB", {}),
                           "USER_DATA":     user_data}
+                params.update(kwargs)
                 return func(**params)
             else:
                 raise DevelopmentError("The server_api.yaml is not used, so 'handler' decorator is invalid.")
