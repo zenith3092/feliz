@@ -1,5 +1,13 @@
 # Update History
 
+## v0.0.6
+
+### Update `PostgresInitialware`
+
+If the `init_type` in meta is `schema` and the `authorization` is `None`, the `PostgresInitialware` will try to use the `username` of the database configuration as the authorization.
+
+That is, if you want to use configuration's username as the authorization, do not need to set the `authorization` in the meta, except that you want to use another authorization.
+
 ## v0.0.5
 
 ### Add Dynamic Routing
