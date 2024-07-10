@@ -2,11 +2,11 @@
 
 A framework designed to assist in using Flask.
 
-## Example Repository
+## Template
 
-If you want to see the example of Feliz, you can refer to the following repository:
+If you want to use the template of Feliz, you can clone the following repository:
 
-[feliz-example](https://github.com/zenith3092/feliz-example)
+[feliz-template](https://github.com/zenith3092/feliz-template)
 
 ## Features
 
