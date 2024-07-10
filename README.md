@@ -2,6 +2,12 @@
 
 A framework designed to assist in using Flask.
 
+## Template
+
+If you want to use the template of Feliz, you can clone the following repository:
+
+[feliz-template](https://github.com/zenith3092/feliz-template)
+
 ## Features
 
 -   **Rapid API Development**: Offers decorators and utility functions to quickly establish RESTful APIs with minimal code.

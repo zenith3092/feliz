@@ -351,7 +351,7 @@ class _SafeKeysMiddleware(Middleware):
     @staticmethod
     def check_api_configs_validity(api_configs):
         if not len(api_configs["Optionals"]) == len(api_configs["OptionalDefaults"]):
-            raise DevelopmentError("The length of Optionals and OptionalDefaults in server_api.yaml should be the same.")
+            raise DevelopmentError("The length of 'Optionals' and 'OptionalDefaults' in api config file should be the same.")
 
 class SafeMandatoryKeys(_SafeKeysMiddleware):
     """

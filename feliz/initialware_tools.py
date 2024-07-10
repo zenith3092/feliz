@@ -261,6 +261,8 @@ class PostgresInitialware(_DatabaseInitialware):
                         key = keys_list[index]
                         model = init_models[key]
                         if model.meta["initialize"]:
+                            if model.meta["init_type"] == model.INIT_TYPE["SCHEMA"] and model.meta["authorization"] == None:
+                                model.meta["authorization"] = configs["username"]
                             model.create_sql()
                         if index == len(keys_list) - 1:
                             model.execute_sql(db_obj)
