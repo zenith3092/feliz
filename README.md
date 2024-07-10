@@ -2,6 +2,12 @@
 
 A framework designed to assist in using Flask.
 
+## Example Repository
+
+If you want to see the example of Feliz, you can refer to the following repository:
+
+[feliz-example](https://github.com/zenith3092/feliz-example)
+
 ## Features
 
 -   **Rapid API Development**: Offers decorators and utility functions to quickly establish RESTful APIs with minimal code.
