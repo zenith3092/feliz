@@ -1,5 +1,48 @@
 # Update History
 
+## v0.0.7
+
+### New input type - `EmptyInputRequest`
+
+The `EmptyInputRequest` is a new input type, which is used to handle the input which is not given.
+
+New Feature in setting `server_api.yaml`:
+
+### OptionalDefaults
+
+The `OptionalDefaults` should be a list before, but now it can be a dictionary.
+
+If it is a dictionary, no length restriction for the `OptionalDefaults`. That is, you don't need to set all keys of the `Optionals` in the `OptionalDefaults`, and the lack of the keys will be automatically filled with the object `EmptyInputRequest`.
+
+You can use `isinstance` to check whether users give the input.
+
+#### Example:
+
+```yaml
+Optionals: ["name", "age"]
+OptionalDefaults: {"name": "default_name"}
+```
+
+```python
+@handler("/home", xxxApi, methods=["GET"])
+def index(input_request, **params):
+    print(isinstance(input_request["name"], EmptyInputRequest)) # False
+    print(isinstance(input_request["age"], EmptyInputRequest))  # True
+```
+
+### Nullable datatype is supported in InputType
+
+It is a decorator option in the `InputType` to determine whether the input can be `None` (`null`). Namely, if using the decorator option `::nullable`, middleware will accept the input as `None` although the `InputType` is set.
+
+#### Example:
+
+```yaml
+Optionals: ["name", "age"]
+OptionalDefaults: {"name": null}
+InputInspect: True
+InputType: {"name": str::nullable, "age": int}
+```
+
 ## v0.0.6
 
 ### Update `PostgresInitialware`
@@ -23,7 +66,7 @@ from flask import Blueprint
 from feliz.api_tools import handler
 
 xxxApi = Blueprint('xxx', __name__)
-
+74
 @handler("/home/<uid>", xxxApi, methods=["GET"])
 def home(uid, input_request, **params):
     return {"uid": uid}

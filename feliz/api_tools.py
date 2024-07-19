@@ -94,6 +94,19 @@ class DevelopmentError(Exception):
     def __str__(self):
         return self.message
 
+class EmptyInputRequest:
+    """
+    This class is used to handle the empty input request.
+    """
+    def __init__(self, key: str) -> None:
+        self.key = key
+    
+    def __str__(self) -> str:
+        return f"(EmptyInputRequest) {self.key}"
+    
+    def __repr__(self) -> str:
+        return self.__str__()
+
 def error_handler(e, loggerIndicatorFalse=False):
     """
     This function is used to handle the error in the server.
@@ -120,4 +133,3 @@ def api_route_register(app, blueprint: Blueprint):
     The url_prefix is f"/api/{blueprint.name}".
     """
     app.register_blueprint(blueprint, url_prefix=f"/api/{blueprint.name}")
-    

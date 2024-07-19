@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from flask import g, jsonify, Request, Response
 from flask_jwt_extended import get_jwt, verify_jwt_in_request
 import json, logging
-from .api_tools import FalseResponse, DevelopmentError
+from .api_tools import FalseResponse, DevelopmentError, EmptyInputRequest
 from .global_tools import get_globals
 from .inspector_tools import global_use_inspector, api_use_inspector, jwt_use_inspector, db_use_inspector
 
@@ -211,7 +211,7 @@ class _AuthMiddleware(Middleware):
         for item in query_res["formatted_data"]:
             del item["password"]
         return query_res["formatted_data"]
-        
+
 class UserExistence(_AuthMiddleware):
     """
     This middleware is used to check if the user exists in database.
@@ -330,22 +330,30 @@ class _SafeKeysMiddleware(Middleware):
         valid_methods = ["GET", "POST", "PATCH", "PUT", "DELETE"]
 
         if (request.method in valid_methods) and (not constructed_safe_keys) :
-            cls.check_api_configs_validity(api_configs)
             input_request = cls._construct_input_request(input_request, api_configs)
             g.input_request = input_request
             g.constructed_safe_keys = True
         return input_request
 
-    @staticmethod
-    def _construct_input_request(input_request, api_configs):
-        update_dict = {}
+    @classmethod
+    def _construct_input_request(cls, input_request, api_configs):
         input_key_list = input_request.keys()
         opt_key_list = api_configs["Optionals"]
-        opt_val_list = api_configs["OptionalDefaults"]
-        for index in range(len(opt_key_list)):
-            if opt_key_list[index] not in input_key_list:
-                update_dict[opt_key_list[index]] = opt_val_list[index]
-        input_request.update(update_dict)
+        opt_val_data = api_configs["OptionalDefaults"]
+        if type(opt_val_data) == list:
+            cls.check_api_configs_validity(api_configs)
+            update_dict = {}
+            for index in range(len(opt_key_list)):
+                if opt_key_list[index] not in input_key_list:
+                    update_dict[opt_key_list[index]] = opt_val_data[index]
+            input_request.update(update_dict)
+        elif type(opt_val_data) == dict:
+            for key in opt_key_list:
+                if key not in input_key_list:
+                    if key in opt_val_data:
+                        input_request[key] = opt_val_data[key]
+                    else:
+                        input_request[key] = EmptyInputRequest(key)
         return input_request
 
     @staticmethod
@@ -381,31 +389,45 @@ class SafeInputType(_SafeKeysMiddleware):
             input_request = SafeInputType.get_input_request(request)
             api_configs = g.get("API_CONFIGS", {})
             use_inspector = api_configs.get("InputInspect", False)
-            input_type = api_configs.get("InputType", None)
-            if use_inspector :
-                if input_type == None:
+            input_type_configs = api_configs.get("InputType", None)
+            if use_inspector:
+                if input_type_configs == None:
                     raise DevelopmentError("You should set the InputType in server_api.yaml if you want to use InputInspect.")
-                for inspect_key, inspect_type in api_configs["InputType"].items():
+                
+                for inspect_key, inspect_type_info_str in input_type_configs.items():
+                    inspect_type_info = inspect_type_info_str.split("::")
+                    nullable = False
+                    if len(inspect_type_info) > 1:
+                        inspect_type = inspect_type_info[0]
+                        nullable = "nullable" in inspect_type_info[1:]
+                    else:
+                        inspect_type = inspect_type_info[0]
+                    
                     try:
                         inspect_value = input_request[inspect_key]
                     except KeyError as e:
                         raise DevelopmentError(f"The InputType of server_api.yaml not have the key '{inspect_key}'")
-                    if not self.input_type_inspector(inspect_type, inspect_value):
-                        return FalseResponse(f"The input type of '{inspect_key}' should not be *{type(inspect_value).__name__} but *{inspect_type}")
+                    
+                    if inspect_value == None:
+                        if not nullable:
+                            return FalseResponse(f"The input type of '{inspect_key}' should not be None but *{inspect_type}")
+                    elif not isinstance(inspect_value, EmptyInputRequest):
+                        if not self.input_type_inspector(inspect_type, inspect_value):
+                            return FalseResponse(f"The input type of '{inspect_key}' should not be *{type(inspect_value).__name__} but *{inspect_type}")
 
-    def input_type_inspector(self, inspect_type: str, value) -> bool:
+    def input_type_inspector(self, inspect_type: str, inspect_value: str) -> bool:
         flag = True
         if inspect_type in ["json", "json-list", "json-dict"]:
-            try:
-                loads = json.loads(value)
-                if inspect_type == "json-list":
-                    flag = (type(loads) == list)
-                elif inspect_type == "json-dict":
-                    flag = (type(loads) == dict)
-            except:
-                flag = False
+                try:
+                    loads = json.loads(inspect_value)
+                    if inspect_type == "json-list":
+                        flag = (type(loads) == list)
+                    elif inspect_type == "json-dict":
+                        flag = (type(loads) == dict)
+                except:
+                    flag = False
         else:
-            flag = ( eval(inspect_type) == type(value) )
+            flag = ( eval(inspect_type) == type(inspect_value) )
         return flag
 
     def process_response(self, response, stop):
