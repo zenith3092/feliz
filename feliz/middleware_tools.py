@@ -348,6 +348,8 @@ class _SafeKeysMiddleware(Middleware):
                     update_dict[opt_key_list[index]] = opt_val_data[index]
             input_request.update(update_dict)
         elif type(opt_val_data) == dict:
+            if not set(opt_val_data.keys()).issubset(set(opt_key_list)):
+                raise DevelopmentError("The keys in OptionalDefaults should be included in Optionals.")
             for key in opt_key_list:
                 if key not in input_key_list:
                     if key in opt_val_data:
