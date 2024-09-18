@@ -2,14 +2,17 @@ import logging
 import datetime
 import time
 import os
+import json
+import importlib
 from abc import ABC, abstractmethod
 from flask import Flask
 from flask.json.provider import DefaultJSONProvider, _default
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
 from .file_tools import read_ini
-from .global_tools import load_globals_from_yaml, get_configs, set_db, get_globals
+from .global_tools import load_globals_from_yaml, get_configs, set_db, get_globals, set_configs
 from .inspector_tools import jwt_use_inspector, cors_use_inspector, db_use_inspector
+from .api_tools import api_route_register
 
 ## =============== Original Initialware =============== ##
 
@@ -139,6 +142,8 @@ class JwtInitialware(Initialware):
 class CorsInitialware(Initialware):
     """
     The CorsInitialware class is used to initialize the CORS.
+    Please refer to the Flask-CORS documentation for more information.
+    https://flask-cors.readthedocs.io/en/latest/api.html
     
     Args:
         settings (dict)
@@ -299,4 +304,70 @@ class JsonifyInitialware(Initialware):
                     return _default(obj)
             default = default_action
         prev_data["app"].json = CustomJSONEncoder(prev_data["app"])
+        return prev_data
+
+class ImportI18NInitialware(Initialware):
+    """
+    The ImportI18NInitialware class is used to import the i18n data. Thus, server can use the i18n config to translate the message.
+    The structure of the i18n json file is as follows:
+    \n {
+        "key1": {
+            "en": "value1",
+            "zh": "value2"
+        },
+        "key2": {
+            "en": "value3",
+            "zh": "value4"
+        }
+    }
+
+    Args:
+        file_path (str): The file path of the i18n json file. The default value is f"{os.getcwd()}/configs/public/i18n.json".
+    """
+    def __init__(self, file_path=f"{os.getcwd()}/configs/public/i18n.json"):
+        self.file_path = file_path
+
+    def process(self, prev_data):
+        try:
+            with open(self.file_path, "r", encoding="utf-8") as f:
+                i18n_data = json.load(f)
+        except:
+            i18n_data = {}
+        set_configs("I18N", i18n_data)
+        
+        return prev_data
+
+class RegisterApisInitialware(Initialware):
+    """
+    The RegisterApisInitialware class is used to register the APIs. Based on the server_api.yaml, importing the necessary APIs to the server.
+    Therefore, server does not need to import all the APIs in apis folder, which can reduce the memory usage and improve the efficiency.
+
+    The process of registering the APIs is the same as the function api_route_register.
+    Thus, the url_prefix is f"/api/{blueprint.name}".
+
+    Args:
+        api_folder (str): The folder name of the APIs. The default value is "apis".
+        module_suffix (str): The suffix of the module. The default value is "_api".
+        blueprint_suffix (str): The suffix of the blueprint. The default value is "Api".
+        disabled_apis (list): The list of the disabled APIs. The default value is [].
+    """
+    def __init__(self, api_folder="apis", module_suffix="_api", blueprint_suffix="Api", disabled_apis=[]):
+        self.api_folder = api_folder
+        self.module_suffix = module_suffix
+        self.blueprint_suffix = blueprint_suffix
+        self.disabled_apis = disabled_apis
+    
+    def process(self, prev_data):
+        SERVER_API = get_globals("API")
+        API_CONFIGS = get_configs("API")
+        API_ENABLE = API_CONFIGS.get("API_ENABLE", False)
+
+        if API_ENABLE:
+            api_list = SERVER_API.keys()
+            for api_name in api_list:
+                if api_name in self.disabled_apis:
+                    continue
+                api_module = importlib.import_module(f"{self.api_folder}.{api_name}{self.module_suffix}")
+                api_blueprint = getattr(api_module, f"{api_name}{self.blueprint_suffix}")
+                api_route_register(prev_data["app"], api_blueprint)
         return prev_data

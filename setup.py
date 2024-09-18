@@ -9,10 +9,10 @@ with open(os.path.join(os.path.dirname(__file__), "requirements.txt"), "r") as f
 
 setuptools.setup(
     name="feliz",
-    version="0.0.7",
+    version="0.0.8",
     author="Vincent Wu, Linga Chen, Brian Yin",
     author_email="zenith3092@gmail.com",
-    description="A framework designed to assist in using Flask",
+    description="A framework designed to assist in using Flask and conveniently developing RESTful APIs.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/zenith3092/feliz",
