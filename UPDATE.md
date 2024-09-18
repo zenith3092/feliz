@@ -1,5 +1,15 @@
 # Update History
 
+## v0.0.8
+
+### New initialware `ImportI18NInitialware`
+
+In light of the internationalization, the `ImportI18NInitialware` is used to load the i18n file so that server can response the message in different languages.
+
+### New initialware `RegisterApisInitialware`
+
+The `RegisterApisInitialware` is used to register the apis in the server base on the settings in the `server_api.yaml`.
+
 ## v0.0.7
 
 ### New input type - `EmptyInputRequest`
