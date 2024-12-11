@@ -1,10 +1,12 @@
-from abc import ABC, abstractmethod
-from flask import g, jsonify, Request, Response
-from flask_jwt_extended import get_jwt, verify_jwt_in_request
-import json, logging
 from .api_tools import FalseResponse, DevelopmentError, EmptyInputRequest
 from .global_tools import get_globals
 from .inspector_tools import global_use_inspector, api_use_inspector, jwt_use_inspector, db_use_inspector
+
+from abc import ABC, abstractmethod
+from flask import g, jsonify, Request, Response
+from flask_jwt_extended import get_jwt, verify_jwt_in_request
+
+import json, logging
 
 ## =============== Original Middleware ===============
 
@@ -297,12 +299,13 @@ class UserStatusCheck(_AuthMiddleware):
         status_key (str): The status key. Default: "status".
         excluding_status (list): The excluding status.
     """
-    def __init__(self, DH_OBJ, target: str, unique_key: str, status_key="status", excluding_status=[]):
+    def __init__(self, DH_OBJ, target: str, unique_key: str, status_key="status", excluding_status=[], excluding_status_message={}):
         self.DH_OBJ = DH_OBJ
         self.target = target
         self.unique_key = unique_key
         self.status_key = status_key
-        self.excluding_status = excluding_status
+        self.excluding_status = excluding_status if excluding_status!=[] else list(excluding_status_message.keys())
+        self.excluding_status_message = excluding_status_message
     
     def process_request(self, request: Request, stop):
         if jwt_use_inspector() and api_use_inspector(request) and db_use_inspector():
@@ -314,7 +317,10 @@ class UserStatusCheck(_AuthMiddleware):
                 
                 status = user_list[0][self.status_key]
                 if status in self.excluding_status:
-                    return FalseResponse(f"This user is {status.capitalize()}")
+                    if status in self.excluding_status_message:
+                        return FalseResponse(self.excluding_status_message[status])
+                    else:
+                        return FalseResponse(f"This user is {status.capitalize()}")
     
     def process_response(self, response: Response, stop):
         pass
@@ -414,7 +420,15 @@ class SafeInputType(_SafeKeysMiddleware):
                         if not nullable:
                             return FalseResponse(f"The input type of '{inspect_key}' should not be None but *{inspect_type}")
                     elif not isinstance(inspect_value, EmptyInputRequest):
-                        if not self.input_type_inspector(inspect_type, inspect_value):
+                        passed_inspection = False
+                        type_list = inspect_type.split("|")
+
+                        for _type in type_list:
+                            if self.input_type_inspector(_type, inspect_value):
+                                passed_inspection = True
+                                break
+                        
+                        if not passed_inspection:
                             return FalseResponse(f"The input type of '{inspect_key}' should not be *{type(inspect_value).__name__} but *{inspect_type}")
 
     def input_type_inspector(self, inspect_type: str, inspect_value: str) -> bool:
@@ -429,6 +443,8 @@ class SafeInputType(_SafeKeysMiddleware):
                 except:
                     flag = False
         else:
+            if inspect_type == "null":
+                inspect_type = "None"
             flag = ( eval(inspect_type) == type(inspect_value) )
         return flag
 

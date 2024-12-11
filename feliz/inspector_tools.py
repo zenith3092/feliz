@@ -1,5 +1,6 @@
-import logging
 from .global_tools import get_configs, get_globals
+
+import logging
 
 def global_use_inspector():
     """
@@ -12,7 +13,9 @@ def config_use_inspector():
     This function is used to check whether the CONFIGS is used.
     """
     if len(get_configs().keys()) == 0:
-        logging.debug("CONFIGS is not used.")
+        logging.debug("Feliz Reminder: CONFIGS is not used.")
+        return False
+    return True
 
 def api_use_inspector(request):
     """

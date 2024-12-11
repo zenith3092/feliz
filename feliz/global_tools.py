@@ -1,5 +1,7 @@
 from .file_tools import read_yaml
+
 import os
+import copy
 
 GLOBALS = {"INIT": {},
            "CONFIGS": {},
@@ -8,13 +10,47 @@ GLOBALS = {"INIT": {},
            "MONGO": "mongo",
            "POSTGRES": "postgres"}
 
+def get_dict(d: dict, key: str, default=None):
+    """
+    Get the value of the key from the dictionary.
+    
+    Args:
+        d (dict): The dictionary.
+        key (str): The key.
+        default (any): The default value.
+        
+    Returns:
+        res (any): The value of the key.
+    """
+    if type(d) != dict:
+        raise TypeError("The input d should be a dictionary.")
+    if type(key) != str:
+        raise TypeError("The input key should be a string.")
+    
+    if key == "":
+        return d
+    
+    key_list = key.split(".")
+
+    if len(key_list) == 1:
+        if key not in d:
+            return default
+        return d[key]
+    
+    res = copy.deepcopy(d)
+    for k in key_list:
+        if k == "":
+            raise ValueError("The input key with dot should not contain any empty value.")
+        
+        if k not in res:
+            return default
+        res = res[k]
+    return res
+
 ## Directly get/set/delete/load the GLOBALS
 
-def get_globals(key= ""):
-    if key:
-        return GLOBALS.get(key, "")
-    else:
-        return GLOBALS
+def get_globals(key= "", default={}):
+    return get_dict(GLOBALS, key, default)
 
 def set_globals(key: str, value):
     GLOBALS[key] = value
@@ -36,7 +72,7 @@ def load_globals_from_yaml(key: str, config_fn="", fn="", raise_exception=False)
         res (dict): The result.
     """
     if config_fn:
-        res = read_yaml(f"{os.getcwd()}/configs/{config_fn}")
+        res = read_yaml(os.path.join(os.getcwd(), "configs", config_fn))
     else:
         res = read_yaml(fn)
         
@@ -51,11 +87,8 @@ def load_globals_from_yaml(key: str, config_fn="", fn="", raise_exception=False)
 
 ## Directly get/set/delete the CONFIGS
 
-def get_configs(key= ""):
-    if key:
-        return GLOBALS["CONFIGS"].get(key, "")
-    else:
-        return GLOBALS["CONFIGS"]
+def get_configs(key= "", default={}):
+    return get_dict(GLOBALS["CONFIGS"], key, default)
 
 def set_configs(key: str, value):
     GLOBALS["CONFIGS"][key] = value

@@ -1,7 +1,9 @@
+from .type_tools import FelizResponse
+
 import yaml
 import configparser
 
-def read_yaml(fn: str) -> dict:
+def read_yaml(fn: str) -> FelizResponse:
 	"""
 	This is the helper function that reads the config yaml
 	file and returns a config dictionary
@@ -15,11 +17,13 @@ def read_yaml(fn: str) -> dict:
 			# The FullLoader parameter handles the conversion from YAML
 			# scalar values to Python the dictionary format
 			config_yaml = yaml.load(file, Loader=yaml.FullLoader)
-			return {"indicator": True, "message": "Load a yaml file successfully", "content":config_yaml}
+			if config_yaml is None:
+				config_yaml = {}
+			return {"indicator": True, "message": "Load a yaml file successfully", "content": config_yaml}
 	except Exception as e:
-		return {"indicator": False, "message": str(e)}
+		return {"indicator": False, "message": str(e), "content": None}
 
-def write_yaml(fn: str, content: dict, sort_keys=True) -> dict:
+def write_yaml(fn: str, content: dict, sort_keys=True) -> FelizResponse:
 	"""
 	This is the helper function that writes to the config yaml and 
 	returns the status indicating whether the operation is successful or not.
@@ -40,9 +44,9 @@ def write_yaml(fn: str, content: dict, sort_keys=True) -> dict:
 		indicator = False
 		message = str(e) 
 	
-	return {"indicator":indicator, "message":message}
+	return {"indicator":indicator, "message":message, "content": None}
 
-def read_ini(fn: str) -> dict:
+def read_ini(fn: str) -> FelizResponse:
 	"""
 	This is the helper function that reads the config ini
 	Parameters:
@@ -57,4 +61,4 @@ def read_ini(fn: str) -> dict:
 		config_ini.read(fn)
 		return {"indicator": True, "message": "Load an ini file successfully", "content": config_ini}
 	except Exception as e:
-		return {"indicator": False, "message": str(e)}
+		return {"indicator": False, "message": str(e), "content": None}
