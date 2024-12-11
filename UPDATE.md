@@ -52,7 +52,8 @@ Adding new parameter `excluding_status_message` to customize the message when th
 
 ### Modify `SafeInputType` in middleware_tools
 
-Now the type notation can use `|` to represent the union type. For example, `int|str` means the input can be `int` or `str`.
+1. Now the type notation can use `|` to represent the union type. For example, `int|str` means the input can be `int` or `str`.
+2. If set the parameter `directly_convert_json` to `True`, the input will be directly converted to the corresponding type and stored in the input_request with the original key.
 
 ### Add a new tool `type_tools`
 

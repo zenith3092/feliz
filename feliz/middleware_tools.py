@@ -391,7 +391,13 @@ class SafeMandatoryKeys(_SafeKeysMiddleware):
 class SafeInputType(_SafeKeysMiddleware):
     """
     This middleware is used to check if the input type is correct.
+
+    Args:
+        directly_convert_json (bool): If True, the middleware will directly convert the json string to json object. Default: False
     """
+    def __init__(self, directly_convert_json=False):
+        self.directly_convert_json = directly_convert_json
+    
     def process_request(self, request, stop):
         if api_use_inspector(request):
             input_request = SafeInputType.get_input_request(request)
@@ -430,6 +436,9 @@ class SafeInputType(_SafeKeysMiddleware):
                         
                         if not passed_inspection:
                             return FalseResponse(f"The input type of '{inspect_key}' should not be *{type(inspect_value).__name__} but *{inspect_type}")
+                        
+                        if inspect_type in ["json", "json-list", "json-dict"] and self.directly_convert_json:
+                            input_request[inspect_key] = json.loads(inspect_value)
 
     def input_type_inspector(self, inspect_type: str, inspect_value: str) -> bool:
         flag = True
