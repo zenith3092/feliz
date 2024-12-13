@@ -429,16 +429,18 @@ class SafeInputType(_SafeKeysMiddleware):
                         passed_inspection = False
                         type_list = inspect_type.split("|")
 
+                        is_jsonable = False
                         for _type in type_list:
                             if self.input_type_inspector(_type, inspect_value):
                                 passed_inspection = True
+                                is_jsonable = True if _type in ["json", "json-list", "json-dict"] else False
                                 break
                         
                         if not passed_inspection:
                             return FalseResponse(f"The input type of '{inspect_key}' should not be *{type(inspect_value).__name__} but *{inspect_type}")
                         
-                        if inspect_type in ["json", "json-list", "json-dict"] and self.directly_convert_json:
-                            input_request[inspect_key] = json.loads(inspect_value)
+                        if is_jsonable and self.directly_convert_json:
+                            g.input_request[inspect_key] = json.loads(inspect_value)
 
     def input_type_inspector(self, inspect_type: str, inspect_value: str) -> bool:
         flag = True
