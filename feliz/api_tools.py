@@ -1,8 +1,11 @@
+from .inspector_tools import api_use_inspector
+from .type_tools import FelizResponse
+
+from flask import request, g, Blueprint, Flask
+from functools import wraps
+from typing import Union
 import traceback
 import logging
-from functools import wraps
-from flask import request, g, Blueprint
-from .inspector_tools import api_use_inspector
 
 def handler(endpoint: str, blueprint: Blueprint, **options):
     """
@@ -42,7 +45,7 @@ def handler(endpoint: str, blueprint: Blueprint, **options):
         return wrapper
     return decorator
 
-def TrueResponse(message: str, content=None) -> dict:
+def TrueResponse(message: str, content=None) -> FelizResponse:
     """
     This function is used to return the message to the client with {"indicator": True, "message": message, "content": content}
     
@@ -51,11 +54,11 @@ def TrueResponse(message: str, content=None) -> dict:
         content (any): The content to return to the client.
     
     Returns:
-        dict: The message to return to the client.
+        FelizResponse (dict): The message to return to the client.
     """
     return {"indicator": True, "message": message, "content": content}
 
-def FalseResponse(message: str, content=None) -> dict:
+def FalseResponse(message: str, content=None, raise_error: bool = True, print_log: Union[bool, None] = None) -> Union[FelizResponse, None]:
     """
     This function is used to return the message to the client with {"indicator": False, "message": message}
     
@@ -63,9 +66,12 @@ def FalseResponse(message: str, content=None) -> dict:
         message (str): The message to return to the client.
     
     Returns:
-        dict: The message to return to the client.
+        FelizResponse (dict): The message to return to the client
     """
-    raise IndicatorFalseException(message, content=content)
+    if raise_error:
+        raise IndicatorFalseException(message, content=content, print_log=print_log)
+    else:
+        return {"indicator": False, "message": message, "content": content}
 
 class IndicatorFalseException(Exception):
     """
@@ -73,10 +79,11 @@ class IndicatorFalseException(Exception):
     If developers want to return indicator False, they should raise this error.
     Then, server will return the message to the client with {"indicator": False, "message": message}
     """
-    def __init__(self, message, content=None):
+    def __init__(self, message, content=None, print_log=None):
         super().__init__()
         self.message = message
         self.content = content
+        self.print_log = print_log
         self.filename, self.lineno, self.function, self.text = traceback.extract_stack()[-2]
     
     def __str__(self):
@@ -116,7 +123,7 @@ def error_handler(e, loggerIndicatorFalse=False):
         loggerIndicatorFalse (bool): If True, the server will log the error message when the class is IndicatorFalseException.
     """
     if isinstance(e, IndicatorFalseException):
-        if loggerIndicatorFalse:
+        if e.print_log == True or (e.print_log == None and loggerIndicatorFalse == True):
             logging.warning(f"\n============ Server API Indicator False ============")
             logging.warning(traceback.format_exc())
             logging.warning("=====================================================\n")
@@ -127,9 +134,9 @@ def error_handler(e, loggerIndicatorFalse=False):
         logging.warning("=====================================================\n")
         return {"indicator": False, "message": str(e), "content": None}
 
-def api_route_register(app, blueprint: Blueprint):
+def api_route_register(app: Flask, blueprint: Blueprint, api_prefix: str = "/api"):
     """
     This function is used to register the blueprint to the app.
-    The url_prefix is f"/api/{blueprint.name}".
+    The url_prefix is f"{api_prefix}/{blueprint.name}".
     """
-    app.register_blueprint(blueprint, url_prefix=f"/api/{blueprint.name}")
+    app.register_blueprint(blueprint, url_prefix=f"{api_prefix}/{blueprint.name}")

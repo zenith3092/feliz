@@ -1,18 +1,20 @@
+from .file_tools import read_ini
+from .global_tools import load_globals_from_yaml, get_configs, set_db, get_globals, set_configs
+from .inspector_tools import jwt_use_inspector, cors_use_inspector, db_use_inspector
+from .api_tools import api_route_register
+
+from flask import Flask
+from flask.json.provider import DefaultJSONProvider, _default
+from flask_jwt_extended import JWTManager
+from flask_cors import CORS
+
+from abc import ABC, abstractmethod
 import logging
 import datetime
 import time
 import os
 import json
 import importlib
-from abc import ABC, abstractmethod
-from flask import Flask
-from flask.json.provider import DefaultJSONProvider, _default
-from flask_jwt_extended import JWTManager
-from flask_cors import CORS
-from .file_tools import read_ini
-from .global_tools import load_globals_from_yaml, get_configs, set_db, get_globals, set_configs
-from .inspector_tools import jwt_use_inspector, cors_use_inspector, db_use_inspector
-from .api_tools import api_route_register
 
 ## =============== Original Initialware =============== ##
 
@@ -112,11 +114,15 @@ class JwtInitialware(Initialware):
         """
         if jwt_use_inspector():
             JWT_CONFIGS = get_configs("JWT")
-            EXPIRE_HOURS = JWT_CONFIGS["EXPIRE_HOURS"]
-            if EXPIRE_HOURS == "INFINITE":
+            ETERNAL_JWT_TOKEN = JWT_CONFIGS.get("ETERNAL_JWT_TOKEN", False)
+            
+            if ETERNAL_JWT_TOKEN:
                 JWT_CONFIGS.update({"JWT_ACCESS_TOKEN_EXPIRES": False})
             else:
-                JWT_CONFIGS.update({"JWT_ACCESS_TOKEN_EXPIRES": datetime.timedelta(hours=JWT_CONFIGS["EXPIRE_HOURS"])})
+                expired_configs = JWT_CONFIGS.get("EXPIRE_TIME_DELTA", None)
+                if expired_configs == None:
+                    expired_configs = {"hours": JWT_CONFIGS["EXPIRE_HOURS"]}
+                JWT_CONFIGS.update({"JWT_ACCESS_TOKEN_EXPIRES": datetime.timedelta(**expired_configs)})
             prev_data["app"].config.update(JWT_CONFIGS)
             jwt = JWTManager(prev_data["app"])
             
@@ -128,6 +134,9 @@ class JwtInitialware(Initialware):
 
             @jwt.invalid_token_loader
             def invalid_token_callback(error):
+                PRINT_LOG = JWT_CONFIGS.get("PRINT_LOG", False)
+                if PRINT_LOG:
+                    logging.warning(f"Invalid JWT token: {error}")
                 return {"indicator": False, "message": RETURN_MESSAGE.get("INVALID_TOKEN", "Invalid JWT token")}
 
             @jwt.revoked_token_loader
@@ -156,7 +165,13 @@ class CorsInitialware(Initialware):
         Initialize the CORS.
         """
         if cors_use_inspector():
-            CORS(prev_data["app"], **self.kwargs)
+            cors_configs = {}
+            if self.kwargs == {}:
+                cors_configs = self.kwargs
+            else:
+                CORS_CONFIGS = get_configs("CORS")
+                cors_configs = CORS_CONFIGS.get("SETTINGS", {})
+            CORS(prev_data["app"], **cors_configs)
         return prev_data
 
 class _DatabaseInitialware(Initialware):
