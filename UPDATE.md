@@ -1,5 +1,15 @@
 # Update History
 
+## v0.1.1
+
+### Modify `MongoInitialware` in initialware_tools
+
+Now can auto create the collection if the collection does not exist.
+
+### Modify `PostgresInitialware` in initialware_tools
+
+Modify the logic of the initialization of the database. Now the `PostgresInitialware` will create database objects first and then create the database. Thus, programmer can initialize the database with the access to all the other database objects.
+
 ## v0.1.0
 
 ### Modify `FalseResponse` in api_tools

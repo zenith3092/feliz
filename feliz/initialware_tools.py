@@ -1,5 +1,5 @@
 from .file_tools import read_ini
-from .global_tools import load_globals_from_yaml, get_configs, set_db, get_globals, set_configs
+from .global_tools import load_globals_from_yaml, get_configs, set_db, get_db, get_globals, set_configs
 from .inspector_tools import jwt_use_inspector, cors_use_inspector, db_use_inspector
 from .api_tools import api_route_register
 
@@ -242,6 +242,13 @@ class MongoInitialware(_DatabaseInitialware):
                     schemas=self.mongo_models[alias]
                 )
                 set_db(MongoInitialware.MONGO, section, db_obj)
+
+            for section, configs in ini_configs.items():
+                db_obj = get_db(MongoInitialware.MONGO, section)
+                models = self.mongo_models[section]
+                for schema_name, _ in models.items():
+                    db_obj.get_data(schema_name, limit=1)
+
         return prev_data
 
 class PostgresInitialware(_DatabaseInitialware):
@@ -266,6 +273,7 @@ class PostgresInitialware(_DatabaseInitialware):
                 logging.warning(f'Load INI File Error: {get_ini_res["message"]}')
                 return prev_data
             ini_configs = get_ini_res["content"][PostgresInitialware.POSTGRES]
+
             for section, configs in ini_configs.items():
                 db_obj = self.postgres_handler_class(
                     host=configs["host"],
@@ -274,20 +282,28 @@ class PostgresInitialware(_DatabaseInitialware):
                     password=configs["password"],
                     database=configs["database"],
                 )
+                set_db(PostgresInitialware.POSTGRES, section, db_obj)
+
+            for section, configs in ini_configs.items():
+                db_obj = get_db(PostgresInitialware.POSTGRES, section)
                 if section in self.postgres_models:
                     init_models = self.postgres_models[section]
                     keys_list = list(init_models.keys())
+                    modified_meta_authorization = False
                     for index in range(len(keys_list)):
                         key = keys_list[index]
                         model = init_models[key]
                         if model.meta["initialize"]:
                             if model.meta["init_type"] == model.INIT_TYPE["SCHEMA"] and model.meta["authorization"] == None:
                                 model.meta["authorization"] = configs["username"]
+                                modified_meta_authorization = True
                             model.create_sql()
                         if index == len(keys_list) - 1:
                             model.execute_sql(db_obj)
                             model.clear_sql()
-                set_db(PostgresInitialware.POSTGRES, section, db_obj)
+                            if modified_meta_authorization:
+                                model.meta["authorization"] = None
+                                modified_meta_authorization = False
         return prev_data
 
 class JsonifyInitialware(Initialware):
