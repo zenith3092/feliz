@@ -1,5 +1,28 @@
 # Update History
 
+## v0.2.0
+
+### New API Tools
+
+-   `NormalJsonResponse`: This function is used to return the message to the client with the format `{"message": message, "content": content}` and a `200` status code. If message is `None` and content is not `None`, the response will be empty content with a `204` status code.
+-   `BadJsonResponse`: This function is used to return the message to the client with the format `{"error_code": error_code, "content": content}` and a `400` status code.
+-   `UnauthorizedJsonResponse`: This function is used to return the message to the client with the format `{"message": message, "content": content}` and a `401` status code.
+-   `InternalErrorJsonResponse`: This function is used to return the message to the client with the format `{"error_code": error_code, "content": content}` and a `500` status code.
+
+### `JwtExtendInitialware` in initialware_tools
+
+The `JwtExtendInitialware` is used to flexibly set the configuration of the JWT token.
+
+### Modify `_JWTMiddleware` in middleware_tools
+
+Now, the `_JWTMiddleware` can support the refresh of the JWT token. If the api config `Refresh` is set to `True`, the middleware will verify the JWT token with refresh mode.
+
+## v0.1.2
+
+### Modify `PostgresInitialware` in initialware_tools
+
+Fix the bug of the initialization of the database.
+
 ## v0.1.1
 
 ### Modify `MongoInitialware` in initialware_tools

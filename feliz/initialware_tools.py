@@ -114,6 +114,7 @@ class JwtInitialware(Initialware):
         """
         if jwt_use_inspector():
             JWT_CONFIGS = get_configs("JWT")
+
             ETERNAL_JWT_TOKEN = JWT_CONFIGS.get("ETERNAL_JWT_TOKEN", False)
             
             if ETERNAL_JWT_TOKEN:
@@ -148,6 +149,53 @@ class JwtInitialware(Initialware):
                 return {"indicator": False, "message": RETURN_MESSAGE.get("EXPIRED_TOKEN", "Expired JWT token")}
         return prev_data
 
+class JwtExtendInitialware(Initialware):
+    """
+    The JwtExtendInitialware class is used to initialize the JWT But with more extended features.
+    """
+    def process(self, prev_data):
+        """
+        Initialize the JWT.
+        """
+        if jwt_use_inspector():
+            JWT_CONFIGS = get_configs("JWT")
+            JWT_APP_CONFIGS = JWT_CONFIGS.get("APP_CONFIGS", {})
+
+            prev_data["app"].config.update(JWT_APP_CONFIGS)
+            jwt = JWTManager(prev_data["app"])
+
+            RETURN_MESSAGE = JWT_CONFIGS.get("MESSAGE", {})
+
+            @jwt.unauthorized_loader
+            def unauthorized_callback(error):
+                PRINT_LOG = get_configs("JWT").get("PRINT_LOG", False)
+                if PRINT_LOG:
+                    logging.warning(f"Unauthorized JWT access: {error}")
+                return {"message": RETURN_MESSAGE.get("UNAUTHORIZED", "Missing JWT token")}, 401
+
+            @jwt.invalid_token_loader
+            def invalid_token_callback(error):
+                PRINT_LOG = get_configs("JWT").get("PRINT_LOG", False)
+                if PRINT_LOG:
+                    logging.warning(f"Invalid JWT token: {error}")
+                return {"message": RETURN_MESSAGE.get("INVALID_TOKEN", "Invalid JWT token")}, 401
+            
+            @jwt.revoked_token_loader
+            def revoked_token_callback(error):
+                PRINT_LOG = get_configs("JWT").get("PRINT_LOG", False)
+                if PRINT_LOG:
+                    logging.warning(f"Revoked JWT token: {error}")
+                return {"message": RETURN_MESSAGE.get("REVOKED_TOKEN", "Revoked JWT token")}, 401
+            
+            @jwt.expired_token_loader
+            def expired_token_callback(error, expired_token):
+                PRINT_LOG = get_configs("JWT").get("PRINT_LOG", False)
+                if PRINT_LOG:
+                    logging.warning(f"Expired JWT token: {error}, expired_token: {expired_token}")
+                return {"message": RETURN_MESSAGE.get("EXPIRED_TOKEN", "Expired JWT token")}, 401
+
+        return prev_data
+
 class CorsInitialware(Initialware):
     """
     The CorsInitialware class is used to initialize the CORS.
@@ -172,6 +220,27 @@ class CorsInitialware(Initialware):
                 CORS_CONFIGS = get_configs("CORS")
                 cors_configs = CORS_CONFIGS.get("SETTINGS", {})
             CORS(prev_data["app"], **cors_configs)
+        return prev_data
+
+class SessionInitialware(Initialware):
+    """
+    The SessionInitialware class is used to initialize the session.
+    """
+    def __init__(self, secret_key="", session_configs={}):
+        self.secret_key = secret_key
+        self.session_configs = session_configs
+
+    def process(self, prev_data):
+        SESSION_CONFIGS = get_configs("SESSION", {})
+        if self.secret_key == "":
+            self.secret_key = SESSION_CONFIGS.get("SECRET", "default_secret_key")
+        if self.session_configs == {}:
+            self.session_configs = SESSION_CONFIGS.get("APP_CONFIGS", {})
+
+        prev_data["app"].secret_key = self.secret_key
+
+        prev_data["app"].config.update(self.session_configs)
+
         return prev_data
 
 class _DatabaseInitialware(Initialware):
@@ -289,8 +358,9 @@ class PostgresInitialware(_DatabaseInitialware):
                 if section in self.postgres_models:
                     init_models = self.postgres_models[section]
                     keys_list = list(init_models.keys())
-                    modified_meta_authorization = False
                     for index in range(len(keys_list)):
+                        modified_meta_authorization = False
+
                         key = keys_list[index]
                         model = init_models[key]
                         if model.meta["initialize"]:
@@ -298,12 +368,12 @@ class PostgresInitialware(_DatabaseInitialware):
                                 model.meta["authorization"] = configs["username"]
                                 modified_meta_authorization = True
                             model.create_sql()
+                            if modified_meta_authorization:
+                                model.meta["authorization"] = None
+                        
                         if index == len(keys_list) - 1:
                             model.execute_sql(db_obj)
                             model.clear_sql()
-                            if modified_meta_authorization:
-                                model.meta["authorization"] = None
-                                modified_meta_authorization = False
         return prev_data
 
 class JsonifyInitialware(Initialware):
@@ -402,3 +472,4 @@ class RegisterApisInitialware(Initialware):
                 api_blueprint = getattr(api_module, f"{api_name}{self.blueprint_suffix}")
                 api_route_register(prev_data["app"], api_blueprint)
         return prev_data
+

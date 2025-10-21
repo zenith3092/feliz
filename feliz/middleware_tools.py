@@ -149,7 +149,9 @@ class _JWTMiddleware(Middleware):
     def process_request(self, request, stop):
         if jwt_use_inspector():
             api_configs = g.get("API_CONFIGS", {})
-            if api_configs.get("Authentication", False):
+            if api_configs.get("Refresh", False):
+                verify_jwt_in_request(refresh=True, locations=["cookies"])
+            elif api_configs.get("Authentication", False):
                 verify_jwt_in_request()
 
     def process_response(self, response, stop):
