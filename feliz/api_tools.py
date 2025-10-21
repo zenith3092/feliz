@@ -1,7 +1,7 @@
 from .inspector_tools import api_use_inspector
 from .type_tools import FelizResponse
 
-from flask import request, g, Blueprint, Flask
+from flask import request, g, Blueprint, Flask, jsonify
 from functools import wraps
 from typing import Union
 import traceback
@@ -72,6 +72,45 @@ def FalseResponse(message: str, content=None, raise_error: bool = True, print_lo
         raise IndicatorFalseException(message, content=content, print_log=print_log)
     else:
         return {"indicator": False, "message": message, "content": content}
+
+def NormalJsonResponse(message: str | None = None, content=None):
+    """
+    This function is used to return the message to the client with the format {"message": message, "content": content} and a 200 status code.
+
+    If both message and content are None, return a 204 status code.
+    """
+    if message is None and content is None:
+        return {}, 204
+    
+    return {"message": message, "content": content}, 200
+
+def BadJsonResponse(error_code: str, content=None):
+    """
+    This function is used to return the message to the client with the format {"error_code": error_code, "content": content} and a 400 status code.
+    
+    400 Bad Request is used when the request cannot be processed due to client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+    """
+    return jsonify({"error_code": error_code, "content": content}), 400
+
+def UnauthorizedJsonResponse(message: str, content=None):
+    """
+    This function is used to return the message to the client with the format {"message": message, "content": content} and a 401 status code.
+    
+    401 Unauthorized indicates that the request has not been applied because it lacks valid authentication credentials for the target resource.
+    """
+    return jsonify({"message": message, "content": content}), 401
+
+def InternalErrorJsonResponse(error_code: str, content=None):
+    """
+    This function is used to return the message to the client with the format {"error_code": error_code, "content": content} and a 500 status code.
+    
+    500 Internal Server Error indicates that the server encountered an unexpected condition that prevented it from fulfilling the request.
+    """
+    stack = traceback.format_stack()
+    if len(stack) > 1:
+        stack = stack[-2:-1]
+    logging.error(f"\nInternal Server Error: {''.join(stack)}")
+    return jsonify({"error_code": error_code, "content": content}), 500
 
 class IndicatorFalseException(Exception):
     """
